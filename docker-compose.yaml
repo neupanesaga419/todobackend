@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  django-web:
+    build: .
+    container_name: django_app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - django-db
+      - redis
+    environment:
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=localhost 127.0.0.1
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DATABASE_URL=postgres://postgres:postgres@django-db:5432/postgres
+
+  django-db:
+    image: postgres:15-alpine  # Lightweight PostgreSQL image
+    container_name: postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+
+  redis:
+    image: redis:7-alpine  # Lightweight Redis image
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    container_name: celery_worker
+    command: celery -A backend worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - django-web
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DATABASE_URL=postgres://postgres:postgres@django-db:5432/postgres
+
+  celery-beat:
+    build: .
+    container_name: celery_beat
+    command: celery -A backend beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - django-web
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DATABASE_URL=postgres://postgres:postgres@django-db:5432/postgres
+
+volumes:
+  postgres_data:
