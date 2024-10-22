@@ -1,9 +1,4 @@
 
-### Complete Example of README.md
-
-Here's how the entire README might look with all the sections combined:
-
-```markdown
 # 📝 Todo App API
 
 ![Python](https://img.shields.io/badge/Python-3.9-blue)
