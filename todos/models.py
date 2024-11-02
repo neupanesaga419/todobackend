@@ -1,12 +1,17 @@
 from django.db import models
-from django.contrib.auth.models import User
+from custom_auth.models import CustomUser
 
+
+NOT_STARTED = "Not Started"
+WORKING = "Working on It"
+COMPLETED = "Completed"
+NEED_GUIDANCE = "Need Guidance"
 
 STATUS = (
-    ("Working on It", "Working on It"),
-    ("Not Started", "Not Started"),
-    ("Completed", "Completed"),
-    ("Need Guidance", "Need Guidance"),
+    (WORKING, WORKING),
+    (NOT_STARTED, NOT_STARTED),
+    (COMPLETED, COMPLETED),
+    (NEED_GUIDANCE, NEED_GUIDANCE),
 )
 
 
@@ -16,8 +21,8 @@ class Todo(models.Model):
     completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    status = models.CharField(max_length=50, choices=STATUS, default="Not Started")
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    status = models.CharField(max_length=50, choices=STATUS, default=NOT_STARTED)
+    created_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
         return self.title
