@@ -1,4 +1,9 @@
-from rest_framework import serializers
+from rest_framework.response import Response
+
+from rest_framework import serializers, status
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
 from custom_auth.models import CustomUser
 
 
@@ -53,3 +58,12 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data["last_name"],
         )
         return user
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        # Add custom claims
+        data["user_id"] = self.user.id
+        data["email"] = self.user.username
+        return data

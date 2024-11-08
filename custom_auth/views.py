@@ -5,23 +5,32 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.core.cache import cache
 from django.conf import settings
+from django.contrib.auth.models import User
 
 from rest_framework import status
-from django.contrib.auth.models import User
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 
-from custom_auth.serializers import UserSerializer, UserRegisterSerializer
-from custom_auth.tasks import send_otp_email, send_welcome_email
-from custom_auth.models import CustomUser
 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.serializers import (
-    TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
+
+
+from custom_auth.serializers import (
+    UserSerializer,
+    UserRegisterSerializer,
+    CustomTokenObtainPairSerializer,
+)
+from custom_auth.tasks import (
+    send_otp_email,
+    send_welcome_email,
+    send_reset_password_otp,
+)
+from custom_auth.models import CustomUser
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -167,14 +176,103 @@ class UserRegisterViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+    @action(detail=False, methods=["post"])
+    def forgot_password(self, request):
+        username = request.data.get("username")
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    def validate(self, attrs):
-        data = super().validate(attrs)
-        # Add custom claims
-        data["user_id"] = self.user.id
-        data["email"] = self.user.username
-        return data
+        if not username:
+            return Response(
+                {"error": "username is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = CustomUser.objects.get(username=username)
+            user_id = user.id
+            cache_key = f"forgot_password_{user_id}"
+
+            last_otp_timestamp = cache.get(f"last_otp_timestamp_{user_id}")
+            current_time = time.time()
+
+            if (
+                last_otp_timestamp and current_time - last_otp_timestamp < 60
+            ):  # 3 minutes
+                return Response(
+                    {"error": "Please wait before requesting a new OTP"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            new_otp = str(randint(100000, 999999))
+            cache.set(cache_key, new_otp, timeout=60)
+            cache.set(
+                f"last_otp_timestamp_{user_id}", current_time, timeout=180
+            )  # 3 minutes
+
+            # Send new OTP
+            send_reset_password_otp.delay(
+                user.email, new_otp, user.first_name, user.last_name
+            )
+
+            return Response({"message": "New OTP has been sent to your email"})
+
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    @action(detail=False, methods=["post"])
+    def reset_password(self, request):
+        username = request.data.get("username")
+        submitted_otp = request.data.get("otp")
+        new_password = request.data.get("password")
+        new_password_confirm = request.data.get("confirm_password")
+
+        if not (username and submitted_otp and new_password and new_password_confirm):
+            return Response(
+                {
+                    "error": "username, otp, passwords and  confirm passwords are required"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if new_password != new_password_confirm:
+            return Response(
+                {"error": "Passwords do not match"},
+                status=status.HTTP_400_NOT_ACCEPTABLE,
+            )
+
+        try:
+            user = CustomUser.objects.get(username=username)
+            user_id = user.id
+            cache_key = f"forgot_password_{user_id}"
+            stored_otp = cache.get(cache_key)
+
+            if not stored_otp:
+                return Response(
+                    {
+                        "error": "OTP has expired. Please request a new OTP.",
+                        "can_request_new_otp": True,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if submitted_otp == stored_otp:
+                user.set_password(new_password)
+                user.save()
+                cache.delete(cache_key)  # Clear the OTP from cache
+                return Response({"message": "Password reset successfully"})
+            else:
+                return Response(
+                    {"error": "Invalid OTP"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        except CustomUser.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):

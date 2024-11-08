@@ -31,3 +31,19 @@ def send_welcome_email(email, first_name, last_name):
     )
 
     send_mail(subject, "", from_email, recipient_list, html_message=html_message)
+
+
+@shared_task
+def send_reset_password_otp(email, otp, first_name, last_name):
+
+    subject = "Email Verification OTP"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    recipient_list = [email]
+
+    # Render the HTML template with context
+    html_message = render_to_string(
+        "reset_password.html",
+        {"otp_code": otp, "user_name": f"{first_name} {last_name}"},
+    )
+
+    send_mail(subject, "", from_email, recipient_list, html_message=html_message)
