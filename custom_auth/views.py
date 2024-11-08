@@ -29,6 +29,7 @@ from custom_auth.tasks import (
     send_otp_email,
     send_welcome_email,
     send_reset_password_otp,
+    send_success_email,
 )
 from custom_auth.models import CustomUser
 
@@ -261,6 +262,7 @@ class UserRegisterViewSet(viewsets.ModelViewSet):
                 user.set_password(new_password)
                 user.save()
                 cache.delete(cache_key)  # Clear the OTP from cache
+                send_success_email.delay(user.email, user.first_name, user.last_name)
                 return Response({"message": "Password reset successfully"})
             else:
                 return Response(
