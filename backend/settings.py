@@ -75,7 +75,7 @@ WSGI_APPLICATION = "backend.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "NAME": os.getenv("POSTGRES_DB"),
+        "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("POSTGRES_USER"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
         "HOST": os.getenv("POSTGRES_HOST"),
@@ -121,7 +121,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Django project settings.py
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://192.168.1.68:3000"]
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://192.168.1.68:3000", "http://*"]
 CORS_ALLOWED_METHODS = [
     "GET",
     "POST",
@@ -177,7 +177,7 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_USER = os.getenv("DEFAULT_EMAIL")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")
 
 
