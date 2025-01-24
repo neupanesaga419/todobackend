@@ -1,9 +1,8 @@
+from django.contrib.auth.models import Permission
 from rest_framework.response import Response
-
 from rest_framework import serializers, status
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
 from custom_auth.models import CustomUser
 
 
@@ -67,3 +66,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data["user_id"] = self.user.id
         data["email"] = self.user.username
         return data
+
+
+class PermissionSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Permission

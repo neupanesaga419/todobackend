@@ -8,8 +8,6 @@ from custom_auth.models import CustomUser
 class CustomUserAdmin(UserAdmin):
     model = CustomUser
     list_display = ["username", "email", "is_staff", "is_active"]
-    fieldsets = UserAdmin.fieldsets + ((None, {"fields": ("profile_pic",)}),)
 
 
 admin.site.register(CustomUser, CustomUserAdmin)
-# admin.site.register(Profile, ProfileAdmin)

@@ -6,6 +6,7 @@ from custom_auth.views import (
     CustomTokenObtainPairView,
     CustomTokenRefreshView,
 )
+from custom_auth.viewsets import PermissionViewSet
 
 
 router = DefaultRouter()
@@ -16,6 +17,7 @@ router.register("register", UserRegisterViewSet, basename="register")
 urlpatterns = [
     path("token/", CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
+    path("permissions/", PermissionViewSet.as_view(), name="get_all_permissions"),
 ]
 
 urlpatterns += router.urls
